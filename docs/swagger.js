@@ -21,7 +21,7 @@ const swaggerDefinition = {
       description: 'Development server'
     },
     {
-      url: 'https://api.wastemanagement.com',
+      url: 'https://api.csse.icy-r.dev/api-docs',
       description: 'Production server'
     }
   ],
