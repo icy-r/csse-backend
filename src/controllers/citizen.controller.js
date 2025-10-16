@@ -19,8 +19,16 @@ exports.createRequest = async (req, res) => {
     
     // Validate preferred date is in the future
     const preferred = new Date(preferredDate);
-    if (preferred < new Date()) {
+    const now = new Date();
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 90); // Max 90 days in future
+    
+    if (preferred < now) {
       return errorResponse(res, 'Preferred date must be in the future', 400);
+    }
+    
+    if (preferred > maxDate) {
+      return errorResponse(res, 'Preferred date cannot be more than 90 days in the future', 400);
     }
     
     // Calculate estimated cost
@@ -58,13 +66,17 @@ exports.createRequest = async (req, res) => {
 /**
  * Get user's requests with OData filtering
  * GET /api/citizen/requests
+ * NOTE: In production, userId should come from authenticated session/JWT token
+ * For MVP, we accept it as query parameter (X-User-ID header would be better)
  */
 exports.getRequests = async (req, res) => {
   try {
-    const { userId } = req.query;
+    // TODO: In production, get userId from req.user (after authentication middleware)
+    // const userId = req.user?.id;
+    const userId = req.query.userId || req.headers['x-user-id'];
     
     if (!userId) {
-      return errorResponse(res, 'User ID is required', 400);
+      return errorResponse(res, 'User ID is required (provide via query param or X-User-ID header)', 400);
     }
     
     // Add userId to query (from OData middleware)
@@ -96,8 +108,31 @@ exports.getRequests = async (req, res) => {
 };
 
 /**
- * Track specific request
+ * Get request by ID
  * GET /api/citizen/requests/:id
+ */
+exports.getRequestById = async (req, res) => {
+  try {
+    const request = await WasteRequest
+      .findById(req.params.id)
+      .populate('routeId', 'routeName status scheduledDate')
+      .populate('userId', 'name email phone');
+    
+    if (!request) {
+      return errorResponse(res, 'Request not found', 404);
+    }
+    
+    return successResponse(res, 'Request details retrieved', request);
+    
+  } catch (error) {
+    console.error('Error fetching request:', error);
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+/**
+ * Track specific request with timeline
+ * GET /api/citizen/requests/:id/track
  */
 exports.trackRequest = async (req, res) => {
   try {
@@ -197,8 +232,8 @@ exports.updatePayment = async (req, res) => {
   try {
     const { amount, paymentMethod } = req.body;
     
-    if (!amount) {
-      return errorResponse(res, 'Payment amount is required', 400);
+    if (!amount || amount <= 0) {
+      return errorResponse(res, 'Valid payment amount is required', 400);
     }
     
     const request = await WasteRequest.findById(req.params.id);
@@ -213,6 +248,15 @@ exports.updatePayment = async (req, res) => {
     
     if (request.paymentStatus === 'not-required') {
       return errorResponse(res, 'Payment not required for this request', 400);
+    }
+    
+    // Validate amount meets minimum estimated cost
+    if (amount < request.estimatedCost) {
+      return errorResponse(
+        res, 
+        `Payment amount must be at least ${request.estimatedCost} (estimated cost)`, 
+        400
+      );
     }
     
     request.actualCost = amount;
@@ -303,9 +347,23 @@ exports.cancelRequest = async (req, res) => {
       return errorResponse(res, 'Request not found', 404);
     }
     
-    // Can only cancel pending or approved requests
-    if (!['pending', 'approved'].includes(request.status)) {
+    // Cannot cancel completed, in-progress, or already cancelled requests
+    if (['completed', 'in-progress', 'cancelled'].includes(request.status)) {
       return errorResponse(res, `Cannot cancel request with status: ${request.status}`, 400);
+    }
+    
+    // Business Rule: Cancellation allowed up to 2 hours before scheduled time
+    if (request.status === 'scheduled' && request.scheduledDate) {
+      const now = new Date();
+      const twoHoursBefore = new Date(request.scheduledDate.getTime() - (2 * 60 * 60 * 1000));
+      
+      if (now > twoHoursBefore) {
+        return errorResponse(
+          res, 
+          'Cannot cancel scheduled request within 2 hours of collection time. Please contact coordinator.', 
+          400
+        );
+      }
     }
     
     request.status = 'cancelled';

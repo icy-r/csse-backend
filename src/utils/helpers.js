@@ -27,6 +27,32 @@ exports.calculateCost = (wasteType, quantity) => {
 };
 
 /**
+ * Generate random coordinates within a radius
+ * @param {Number} centerLat - Center latitude
+ * @param {Number} centerLng - Center longitude
+ * @param {Number} radiusKm - Radius in kilometers
+ * @returns {Object} Object with lat and lng properties
+ */
+exports.generateRandomCoordinates = (centerLat, centerLng, radiusKm) => {
+  const y0 = centerLat;
+  const x0 = centerLng;
+  const rd = radiusKm / 111.3; // roughly 111.3 km per degree
+
+  const u = Math.random();
+  const v = Math.random();
+
+  const w = rd * Math.sqrt(u);
+  const t = 2 * Math.PI * v;
+  const x = w * Math.cos(t);
+  const y = w * Math.sin(t);
+
+  const newLat = y + y0;
+  const newLng = x + x0;
+
+  return { lat: newLat, lng: newLng };
+};
+
+/**
  * Calculate distance between two coordinates using Haversine formula
  * @param {Number} lat1 - Latitude of first point
  * @param {Number} lon1 - Longitude of first point
@@ -122,7 +148,8 @@ exports.generateTrackingId = (prefix = 'TRK') => {
  * @returns {Object} Sanitized object
  */
 exports.sanitizeSensitiveData = (obj, sensitiveFields = ['password', 'token', 'apiKey', 'secret']) => {
-  if (!obj || typeof obj !== 'object') return obj;
+  if (!obj) return {};
+  if (typeof obj !== 'object') return obj;
   
   const sanitized = { ...obj };
   sensitiveFields.forEach(field => {

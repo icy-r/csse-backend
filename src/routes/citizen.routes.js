@@ -97,7 +97,7 @@ router.get('/requests', buildQuery(['userId', 'status', 'wasteType', 'createdAt'
  * @swagger
  * /api/citizen/requests/{id}:
  *   get:
- *     summary: Track specific request with timeline
+ *     summary: Get request details by ID
  *     tags: [Citizen]
  *     parameters:
  *       - in: path
@@ -111,7 +111,27 @@ router.get('/requests', buildQuery(['userId', 'status', 'wasteType', 'createdAt'
  *       404:
  *         description: Request not found
  */
-router.get('/requests/:id', citizenController.trackRequest);
+router.get('/requests/:id', citizenController.getRequestById);
+
+/**
+ * @swagger
+ * /api/citizen/requests/{id}/track:
+ *   get:
+ *     summary: Track specific request with detailed timeline
+ *     tags: [Citizen]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Request details with timeline
+ *       404:
+ *         description: Request not found
+ */
+router.get('/requests/:id/track', citizenController.trackRequest);
 
 /**
  * @swagger
