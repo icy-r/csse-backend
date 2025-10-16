@@ -1,6 +1,8 @@
 const WasteRequest = require('../models/WasteRequest.model');
 const SmartBin = require('../models/SmartBin.model');
 const Route = require('../models/Route.model');
+const WorkOrder = require('../models/WorkOrder.model');
+const Device = require('../models/Device.model');
 const { successResponse, errorResponse } = require('../utils/response');
 const { buildPaginationResponse } = require('../middleware/queryBuilder');
 const { optimizeRoute } = require('../services/routeOptimizer.service');
@@ -481,3 +483,86 @@ exports.updateStopStatus = async (req, res) => {
   }
 };
 
+// added
+
+/**
+ * Create work order for device/bin maintenance
+ * POST /api/coordinator/work-orders
+ */
+exports.createWorkOrder = async (req, res) => {
+  try {
+    const { deviceId, binId, issueDescription, issueType, priority } = req.body;
+    
+    if (!deviceId || !binId || !issueDescription) {
+      return errorResponse(res, 'Device ID, Bin ID, and issue description are required', 400);
+    }
+    
+    // Verify device exists
+    const device = await Device.findById(deviceId);
+    if (!device) {
+      return errorResponse(res, 'Device not found', 404);
+    }
+    
+    // Verify bin exists
+    const bin = await SmartBin.findById(binId);
+    if (!bin) {
+      return errorResponse(res, 'Bin not found', 404);
+    }
+    
+    // Create work order
+    const workOrder = await WorkOrder.create({
+      deviceId,
+      binId,
+      issueDescription,
+      issueType: issueType || 'other',
+      priority: priority || 'medium',
+      status: 'pending'
+    });
+    
+    return successResponse(res, 'Work order created successfully', workOrder, 201);
+    
+  } catch (error) {
+    console.error('Error creating work order:', error);
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+/**
+ * Create a new smart bin
+ * POST /api/coordinator/bins
+ */
+exports.createBin = async (req, res) => {
+  try {
+    const { binId, location, capacity, binType } = req.body;
+    
+    if (!binId || !location || !location.coordinates) {
+      return errorResponse(res, 'Bin ID and location with coordinates are required', 400);
+    }
+    
+    if (!location.coordinates.lat || !location.coordinates.lng) {
+      return errorResponse(res, 'Latitude and longitude are required', 400);
+    }
+    
+    // Check if bin already exists
+    const existing = await SmartBin.findOne({ binId });
+    if (existing) {
+      return errorResponse(res, 'Bin ID already exists', 400);
+    }
+    
+    const bin = await SmartBin.create({
+      binId,
+      location,
+      capacity: capacity || 240,
+      binType: binType || 'general',
+      fillLevel: 0,
+      status: 'active',
+      lastUpdated: new Date()
+    });
+    
+    return successResponse(res, 'Bin created successfully', bin, 201);
+    
+  } catch (error) {
+    console.error('Error creating bin:', error);
+    return errorResponse(res, error.message, 500);
+  }
+};

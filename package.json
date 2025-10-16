@@ -31,7 +31,9 @@
     "testMatch": [
       "**/__tests__/**/*.test.js"
     ],
-    "setupFilesAfterEnv": ["<rootDir>/__tests__/setup.js"]
+    "setupFilesAfterEnv": [
+      "<rootDir>/__tests__/setup.js"
+    ]
   },
   "keywords": [
     "waste",
@@ -49,7 +51,7 @@
     "express-validator": "^7.2.0",
     "mongoose": "^8.8.3",
     "socket.io": "^4.8.1",
-    "swagger-jsdoc": "^6.2.8",
+    "swagger-jsdoc": "^3.7.0",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {

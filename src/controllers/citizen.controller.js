@@ -63,12 +63,10 @@ exports.getRequests = async (req, res) => {
   try {
     const { userId } = req.query;
     
-    if (!userId) {
-      return errorResponse(res, 'User ID is required', 400);
+    // Add userId to query if provided (from OData middleware)
+    if (userId) {
+      req.dbQuery.userId = userId;
     }
-    
-    // Add userId to query (from OData middleware)
-    req.dbQuery.userId = userId;
     
     const { page, limit, sort, select } = req.dbOptions;
     const skip = (page - 1) * limit;
@@ -234,11 +232,11 @@ exports.updatePayment = async (req, res) => {
 
 /**
  * Find nearby bins
- * GET /api/citizen/bins/nearby
+ * POST /api/citizen/bins/nearby
  */
 exports.getNearbyBins = async (req, res) => {
   try {
-    const { lat, lng, radius = 2000, binType } = req.query;
+    const { lat, lng, radius = 2000, binType } = req.body;
     
     if (!lat || !lng) {
       return errorResponse(res, 'Latitude and longitude required', 400);

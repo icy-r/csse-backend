@@ -79,9 +79,56 @@ router.get('/dashboard', coordinatorController.getDashboard);
  *         description: Sort field (e.g., fillLevel:desc)
  *     responses:
  *       200:
- *         description: Bins retrieved successfully
+ *   post:
+ *     summary: Create a new smart bin
+ *     tags: [Coordinator]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - binId
+ *               - location
+ *             properties:
+ *               binId:
+ *                 type: string
+ *                 description: Unique identifier for the bin
+ *               location:
+ *                 type: object
+ *                 required:
+ *                   - coordinates
+ *                 properties:
+ *                   address:
+ *                     type: string
+ *                   area:
+ *                     type: string
+ *                   coordinates:
+ *                     type: object
+ *                     required:
+ *                       - lat
+ *                       - lng
+ *                     properties:
+ *                       lat:
+ *                         type: number
+ *                       lng:
+ *                         type: number
+ *               capacity:
+ *                 type: number
+ *                 default: 240
+ *               binType:
+ *                 type: string
+ *                 enum: [household, recyclable, organic, general]
+ *                 default: general
+ *     responses:
+ *       201:
+ *         description: Bin created successfully
+ *       400:
+ *         description: Bin ID already exists or invalid data
  */
 router.get('/bins', buildQuery(['status', 'fillLevel', 'binType']), coordinatorController.getBins);
+router.post('/bins', coordinatorController.createBin);
 
 /**
  * @swagger
@@ -319,6 +366,48 @@ router.put('/routes/:id/status', coordinatorController.updateRouteStatus);
  *         description: Stop status updated
  */
 router.put('/routes/:id/stops/:stopIndex', coordinatorController.updateStopStatus);
+
+/**
+ * @swagger
+ * /api/coordinator/work-orders:
+ *   post:
+ *     summary: Create a work order for device/bin maintenance
+ *     tags: [Coordinator]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - deviceId
+ *               - binId
+ *               - issueDescription
+ *             properties:
+ *               deviceId:
+ *                 type: string
+ *                 description: MongoDB ObjectId of the device
+ *               binId:
+ *                 type: string
+ *                 description: MongoDB ObjectId of the bin
+ *               issueDescription:
+ *                 type: string
+ *                 description: Description of the issue
+ *               issueType:
+ *                 type: string
+ *                 enum: [offline, battery-low, sensor-error, physical-damage, other]
+ *                 default: other
+ *               priority:
+ *                 type: string
+ *                 enum: [low, medium, high, urgent]
+ *                 default: medium
+ *     responses:
+ *       201:
+ *         description: Work order created successfully
+ *       404:
+ *         description: Device or bin not found
+ */
+router.post('/work-orders', coordinatorController.createWorkOrder);
 
 module.exports = router;
 

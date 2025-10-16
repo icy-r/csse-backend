@@ -67,14 +67,15 @@ router.post('/requests', citizenController.createRequest);
  * @swagger
  * /api/citizen/requests:
  *   get:
- *     summary: Get user's waste requests with filtering
+ *     summary: Get waste requests with filtering (optionally filter by userId)
  *     tags: [Citizen]
  *     parameters:
  *       - in: query
  *         name: userId
- *         required: true
+ *         required: false
  *         schema:
  *           type: string
+ *         description: Filter requests by user ID (optional)
  *       - in: query
  *         name: status
  *         schema:
@@ -165,34 +166,40 @@ router.put('/requests/:id/cancel', citizenController.cancelRequest);
 /**
  * @swagger
  * /api/citizen/bins/nearby:
- *   get:
+ *   post:
  *     summary: Find nearby smart bins
  *     tags: [Citizen]
- *     parameters:
- *       - in: query
- *         name: lat
- *         required: true
- *         schema:
- *           type: number
- *       - in: query
- *         name: lng
- *         required: true
- *         schema:
- *           type: number
- *       - in: query
- *         name: radius
- *         schema:
- *           type: number
- *           default: 2000
- *       - in: query
- *         name: binType
- *         schema:
- *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - lat
+ *               - lng
+ *             properties:
+ *               lat:
+ *                 type: number
+ *                 description: Latitude coordinate
+ *               lng:
+ *                 type: number
+ *                 description: Longitude coordinate
+ *               radius:
+ *                 type: number
+ *                 default: 2000
+ *                 description: Search radius in meters
+ *               binType:
+ *                 type: string
+ *                 enum: [general, recyclable, organic, hazardous]
+ *                 description: Filter by bin type
  *     responses:
  *       200:
  *         description: Nearby bins retrieved
+ *       400:
+ *         description: Invalid coordinates
  */
-router.get('/bins/nearby', citizenController.getNearbyBins);
+router.post('/bins/nearby', citizenController.getNearbyBins);
 
 module.exports = router;
 
