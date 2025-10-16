@@ -21,7 +21,7 @@ const swaggerDefinition = {
       description: 'Development server'
     },
     {
-      url: 'https://api.csse.icy-r.dev/api-docs',
+      url: 'https://api.csse.icy-r.dev',
       description: 'Production server'
     }
   ],
