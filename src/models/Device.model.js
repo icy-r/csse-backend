@@ -1,68 +1,75 @@
 const mongoose = require('mongoose');
 
-const deviceSchema = new mongoose.Schema({
-  deviceId: {
-    type: String,
-    required: [true, 'Device ID is required'],
-    unique: true
-  },
-  deviceType: {
-    type: String,
-    enum: ['rfid', 'qr-code', 'sensor'],
-    required: [true, 'Device type is required']
-  },
-  binId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'SmartBin'
-  },
-  status: {
-    type: String,
-    enum: ['active', 'offline', 'decommissioned'],
-    default: 'active'
-  },
-  installationDate: {
-    type: Date,
-    default: Date.now
-  },
-  lastSignal: Date,
-  batteryLevel: {
-    type: Number,
-    min: 0,
-    max: 100
-  },
-  firmwareVersion: String,
-  errorLog: [{
-    timestamp: {
-      type: Date,
-      default: Date.now
-    },
-    errorCode: String,
-    description: String,
-    severity: {
+const deviceSchema = new mongoose.Schema(
+  {
+    deviceId: {
       type: String,
-      enum: ['low', 'medium', 'high', 'critical'],
-      default: 'medium'
-    }
-  }],
-  maintenanceHistory: [{
-    date: {
+      required: [true, "Device ID is required"],
+      unique: true,
+    },
+    deviceType: {
+      type: String,
+      enum: ["rfid", "qr-code", "sensor"],
+      required: [true, "Device type is required"],
+    },
+    binId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SmartBin",
+    },
+    status: {
+      type: String,
+      enum: ["active", "offline", "decommissioned", "error"],
+      default: "active",
+    },
+    installationDate: {
       type: Date,
-      default: Date.now
+      default: Date.now,
     },
-    action: String,
-    technicianId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+    lastSignal: Date,
+    batteryLevel: {
+      type: Number,
+      min: 0,
+      max: 100,
     },
-    notes: String,
-    workOrderId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'WorkOrder'
-    }
-  }]
-}, {
-  timestamps: true
-});
+    firmwareVersion: String,
+    errorLog: [
+      {
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+        errorCode: String,
+        description: String,
+        severity: {
+          type: String,
+          enum: ["low", "medium", "high", "critical"],
+          default: "medium",
+        },
+      },
+    ],
+    maintenanceHistory: [
+      {
+        date: {
+          type: Date,
+          default: Date.now,
+        },
+        action: String,
+        technicianId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        notes: String,
+        workOrderId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "WorkOrder",
+        },
+      },
+    ],
+  },
+  {
+    timestamps: true,
+  }
+);
 
 // Indexes for efficient queries
 // Indexes (deviceId already indexed via unique: true)
