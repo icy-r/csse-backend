@@ -417,5 +417,51 @@ exports.getProfile = async (req, res) => {
   }
 };
 
+/**
+ * Update crew availability
+ * PUT /api/crew/profile/:crewId/availability
+ */
+exports.updateCrewAvailability = async (req, res) => {
+  try {
+    const { crewId } = req.params;
+    const { availability } = req.body;
+    
+    if (!crewId || !availability) {
+      return errorResponse(res, 'Crew ID and availability are required', 400);
+    }
+    
+    const validStatuses = ['available', 'unavailable', 'on-leave'];
+    if (!validStatuses.includes(availability)) {
+      return errorResponse(res, `Invalid availability. Must be one of: ${validStatuses.join(', ')}`, 400);
+    }
+    
+    // Get crew user
+    const crew = await User.findById(crewId);
+    if (!crew || crew.role !== 'crew') {
+      return errorResponse(res, 'Crew member not found', 404);
+    }
+    
+    // Get or create crew profile
+    let profile = await CrewProfile.findOne({ userId: crewId });
+    if (!profile) {
+      profile = await CrewProfile.create({ userId: crewId });
+    }
+    
+    // Update availability
+    await profile.updateAvailability(availability);
+    
+    return successResponse(res, 'Availability updated successfully', {
+      crewId: crew._id,
+      crewName: crew.name,
+      availability: profile.availability,
+      lastUpdated: profile.lastUpdated
+    });
+    
+  } catch (error) {
+    console.error('Error updating crew availability:', error);
+    return errorResponse(res, error.message, 500);
+  }
+};
+
 module.exports = exports;
 

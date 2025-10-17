@@ -224,5 +224,41 @@ router.post('/issues', crewController.reportIssue);
  */
 router.get('/profile', crewController.getProfile);
 
+/**
+ * @swagger
+ * /api/crew/profile/{crewId}/availability:
+ *   put:
+ *     summary: Update crew availability status
+ *     tags: [Crew]
+ *     parameters:
+ *       - in: path
+ *         name: crewId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Crew member's user ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - availability
+ *             properties:
+ *               availability:
+ *                 type: string
+ *                 enum: [available, unavailable, on-leave]
+ *                 description: New availability status
+ *     responses:
+ *       200:
+ *         description: Availability updated successfully
+ *       400:
+ *         description: Invalid availability status or missing data
+ *       404:
+ *         description: Crew member not found
+ */
+router.put('/profile/:crewId/availability', crewController.updateCrewAvailability);
+
 module.exports = router;
 
