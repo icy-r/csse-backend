@@ -42,6 +42,7 @@ app.use(logger);
 
 // Import routes
 const authRoutes = require("./src/routes/auth.routes");
+const userRoutes = require("./src/routes/user.routes");
 const citizenRoutes = require("./src/routes/citizen.routes");
 const coordinatorRoutes = require("./src/routes/coordinator.routes");
 const technicianRoutes = require("./src/routes/technician.routes");
@@ -50,6 +51,7 @@ const logsRoutes = require("./src/routes/logs.routes");
 
 // Mount routes
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/citizen", citizenRoutes);
 app.use("/api/coordinator", coordinatorRoutes);
 app.use("/api/technician", technicianRoutes);
@@ -108,6 +110,7 @@ app.get("/", (req, res) => {
       health: "/health",
       logs: "/logs",
       auth: "/api/auth",
+      users: "/api/users",
       citizen: "/api/citizen",
       coordinator: "/api/coordinator",
       technician: "/api/technician",
@@ -186,6 +189,7 @@ connectDB()
       console.log("");
       console.log("📡 API Routes:");
       console.log(`   └─ Auth:          http://localhost:${PORT}/api/auth`);
+      console.log(`   └─ Users:         http://localhost:${PORT}/api/users`);
       console.log(`   └─ Citizen:       http://localhost:${PORT}/api/citizen`);
       console.log(
         `   └─ Coordinator:   http://localhost:${PORT}/api/coordinator`
