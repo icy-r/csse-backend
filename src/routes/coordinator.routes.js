@@ -320,5 +320,120 @@ router.put('/routes/:id/status', coordinatorController.updateRouteStatus);
  */
 router.put('/routes/:id/stops/:stopIndex', coordinatorController.updateStopStatus);
 
+/**
+ * @swagger
+ * /api/coordinator/crews:
+ *   get:
+ *     summary: Get all crew members
+ *     tags: [Coordinator]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by status (active, inactive, suspended)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Crew members retrieved successfully
+ *   post:
+ *     summary: Create new crew member
+ *     tags: [Coordinator]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - phone
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               vehicleId:
+ *                 type: string
+ *               address:
+ *                 type: object
+ *     responses:
+ *       201:
+ *         description: Crew member created successfully
+ */
+router.get('/crews', buildQuery(['status']), coordinatorController.getCrews);
+router.post('/crews', coordinatorController.createCrew);
+
+/**
+ * @swagger
+ * /api/coordinator/crews/{id}:
+ *   get:
+ *     summary: Get crew member details
+ *     tags: [Coordinator]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Crew member's user ID
+ *     responses:
+ *       200:
+ *         description: Crew details retrieved
+ *       404:
+ *         description: Crew member not found
+ */
+router.get('/crews/:id', coordinatorController.getCrewDetails);
+
+/**
+ * @swagger
+ * /api/coordinator/crews/{id}/availability:
+ *   put:
+ *     summary: Update crew availability status
+ *     tags: [Coordinator]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Crew member's user ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - availability
+ *             properties:
+ *               availability:
+ *                 type: string
+ *                 enum: [available, assigned, unavailable, on-leave]
+ *     responses:
+ *       200:
+ *         description: Availability updated successfully
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Crew member not found
+ */
+router.put('/crews/:id/availability', coordinatorController.updateCrewAvailability);
+
 module.exports = router;
 

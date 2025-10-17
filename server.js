@@ -48,6 +48,7 @@ const deviceRoutes = require("./src/routes/device.routes");
 const workOrderRoutes = require("./src/routes/workorder.routes");
 const citizenRoutes = require("./src/routes/citizen.routes");
 const coordinatorRoutes = require("./src/routes/coordinator.routes");
+const crewRoutes = require("./src/routes/crew.routes");
 const technicianRoutes = require("./src/routes/technician.routes");
 const adminRoutes = require("./src/routes/admin.routes");
 const logsRoutes = require("./src/routes/logs.routes");
@@ -60,6 +61,7 @@ app.use("/api/devices", deviceRoutes);
 app.use("/api/work-orders", workOrderRoutes);
 app.use("/api/citizen", citizenRoutes);
 app.use("/api/coordinator", coordinatorRoutes);
+app.use("/api/crew", crewRoutes);
 app.use("/api/technician", technicianRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/logs", logsRoutes);
@@ -122,6 +124,7 @@ app.get("/", (req, res) => {
       workOrders: "/api/work-orders",
       citizen: "/api/citizen",
       coordinator: "/api/coordinator",
+      crew: "/api/crew",
       technician: "/api/technician",
       admin: "/api/admin",
     },
@@ -208,6 +211,7 @@ connectDB()
       console.log(
         `   └─ Coordinator:   http://localhost:${PORT}/api/coordinator`
       );
+      console.log(`   └─ Crew:          http://localhost:${PORT}/api/crew`);
       console.log(
         `   └─ Technician:    http://localhost:${PORT}/api/technician`
       );
