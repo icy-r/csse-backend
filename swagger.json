@@ -1,0 +1,1311 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Smart Waste Management API",
+    "version": "1.0.0",
+    "description": "RESTful API for Smart Waste Management System - MVP Backend",
+    "contact": {
+      "name": "Development Team",
+      "email": "support@wastemanagement.com"
+    },
+    "license": { "name": "ISC", "url": "https://opensource.org/licenses/ISC" }
+  },
+  "servers": [
+    { "url": "http://localhost:5000", "description": "Development server" },
+    { "url": "https://api.csse.icy-r.dev", "description": "Production server" }
+  ],
+  "tags": [
+    {
+      "name": "Citizen",
+      "description": "Resident/Citizen operations - Request waste pickup, track requests, find nearby bins"
+    },
+    {
+      "name": "Coordinator",
+      "description": "Collection Coordinator operations - Route management, bin monitoring, request approval"
+    },
+    {
+      "name": "Technician",
+      "description": "Field Technician operations - Device maintenance, work orders, repairs"
+    },
+    {
+      "name": "Admin",
+      "description": "System Administrator operations - User management, reports, system health"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string", "example": "507f1f77bcf86cd799439011" },
+          "name": { "type": "string", "example": "John Doe" },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john.doe@example.com"
+          },
+          "phone": { "type": "string", "example": "+94771234567" },
+          "role": {
+            "type": "string",
+            "enum": ["citizen", "coordinator", "technician", "admin"],
+            "example": "citizen"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "inactive", "suspended"],
+            "example": "active"
+          },
+          "address": {
+            "type": "object",
+            "properties": {
+              "street": { "type": "string" },
+              "city": { "type": "string" },
+              "postalCode": { "type": "string" },
+              "coordinates": {
+                "type": "object",
+                "properties": {
+                  "lat": { "type": "number" },
+                  "lng": { "type": "number" }
+                }
+              }
+            }
+          },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "WasteRequest": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "trackingId": { "type": "string", "example": "WR-1697123456-ABC12" },
+          "userId": { "type": "string" },
+          "wasteType": {
+            "type": "string",
+            "enum": ["household", "bulky", "e-waste", "recyclable"],
+            "example": "household"
+          },
+          "quantity": { "type": "string", "example": "2 bags" },
+          "address": {
+            "type": "object",
+            "properties": {
+              "street": { "type": "string", "example": "123 Main St, Malabe" },
+              "city": { "type": "string", "example": "Colombo" },
+              "postalCode": { "type": "string" },
+              "coordinates": {
+                "type": "object",
+                "properties": {
+                  "lat": { "type": "number", "example": 6.9271 },
+                  "lng": { "type": "number", "example": 79.8612 }
+                }
+              }
+            }
+          },
+          "preferredDate": { "type": "string", "format": "date" },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "scheduled",
+              "in-progress",
+              "completed",
+              "cancelled"
+            ],
+            "example": "pending"
+          },
+          "estimatedCost": { "type": "number", "example": 0 },
+          "paymentStatus": {
+            "type": "string",
+            "enum": ["not-required", "pending", "paid", "failed"],
+            "example": "not-required"
+          },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SmartBin": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "binId": { "type": "string", "example": "BIN-001" },
+          "location": {
+            "type": "object",
+            "properties": {
+              "address": { "type": "string" },
+              "area": { "type": "string" },
+              "coordinates": {
+                "type": "object",
+                "properties": {
+                  "lat": { "type": "number" },
+                  "lng": { "type": "number" }
+                }
+              }
+            }
+          },
+          "fillLevel": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "example": 75
+          },
+          "capacity": { "type": "number", "example": 240 },
+          "binType": {
+            "type": "string",
+            "enum": ["household", "recyclable", "organic", "general"],
+            "example": "general"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "offline", "maintenance", "full"],
+            "example": "active"
+          },
+          "fillStatusColor": {
+            "type": "string",
+            "enum": ["red", "yellow", "green"],
+            "example": "yellow"
+          }
+        }
+      },
+      "Route": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "routeName": {
+            "type": "string",
+            "example": "Route A - Morning Collection"
+          },
+          "coordinatorId": { "type": "string" },
+          "crewId": { "type": "string" },
+          "vehicleId": { "type": "string" },
+          "stops": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "stopType": { "type": "string", "enum": ["bin", "request"] },
+                "referenceId": { "type": "string" },
+                "sequence": { "type": "number" },
+                "address": { "type": "string" },
+                "status": {
+                  "type": "string",
+                  "enum": ["pending", "completed", "skipped"]
+                }
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "assigned",
+              "in-progress",
+              "completed",
+              "cancelled"
+            ]
+          },
+          "totalDistance": { "type": "number", "example": 15.5 },
+          "estimatedDuration": { "type": "number", "example": 120 },
+          "completionPercentage": { "type": "number", "example": 65 }
+        }
+      },
+      "WorkOrder": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "workOrderId": { "type": "string", "example": "WO-1697123456-XYZ89" },
+          "technicianId": { "type": "string" },
+          "deviceId": { "type": "string" },
+          "binId": { "type": "string" },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "urgent"],
+            "example": "high"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "assigned",
+              "in-progress",
+              "resolved",
+              "escalated",
+              "cancelled"
+            ]
+          },
+          "issueDescription": {
+            "type": "string",
+            "example": "Device offline for 4 hours"
+          },
+          "actionTaken": {
+            "type": "string",
+            "enum": ["repaired", "replaced", "none"]
+          }
+        }
+      },
+      "Device": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "deviceId": { "type": "string", "example": "DEV-RFID-001" },
+          "deviceType": {
+            "type": "string",
+            "enum": ["rfid", "qr-code", "sensor"]
+          },
+          "binId": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["active", "offline", "decommissioned"]
+          },
+          "batteryLevel": { "type": "number", "minimum": 0, "maximum": 100 },
+          "lastSignal": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "message": {
+            "type": "string",
+            "example": "Operation completed successfully"
+          },
+          "data": { "type": "object" },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": { "type": "number" },
+              "limit": { "type": "number" },
+              "total": { "type": "number" },
+              "totalPages": { "type": "number" },
+              "hasNextPage": { "type": "boolean" },
+              "hasPrevPage": { "type": "boolean" }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string", "example": "Error message" },
+          "errors": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "parameters": {
+      "PageParam": {
+        "in": "query",
+        "name": "page",
+        "schema": { "type": "integer", "minimum": 1, "default": 1 },
+        "description": "Page number for pagination"
+      },
+      "LimitParam": {
+        "in": "query",
+        "name": "limit",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        },
+        "description": "Number of items per page"
+      },
+      "SortParam": {
+        "in": "query",
+        "name": "sort",
+        "schema": { "type": "string", "example": "createdAt:desc" },
+        "description": "Sort by field:order (asc/desc). Multiple: field1:asc,field2:desc"
+      },
+      "SelectParam": {
+        "in": "query",
+        "name": "select",
+        "schema": { "type": "string", "example": "name,email,status" },
+        "description": "Comma-separated list of fields to include"
+      }
+    }
+  },
+  "paths": {
+    "/api/admin/users": {
+      "get": {
+        "summary": "Get all users with filtering",
+        "tags": ["Admin"],
+        "description": "Retrieve a list of all users with optional filtering by role, status, email, or name",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "role",
+            "schema": {
+              "type": "string",
+              "enum": ["citizen", "coordinator", "technician", "admin"]
+            },
+            "description": "Filter by user role"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": ["active", "inactive", "suspended"]
+            },
+            "description": "Filter by user status"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": { "type": "integer", "default": 1 },
+            "description": "Page number for pagination"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": { "type": "integer", "default": 20 },
+            "description": "Number of results per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": {
+                      "type": "string",
+                      "example": "Users retrieved successfully"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/User" }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": { "type": "integer" },
+                        "limit": { "type": "integer" },
+                        "total": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new user",
+        "tags": ["Admin"],
+        "description": "Create a new user account in the system (Admin only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "phone", "role"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Full name of the user",
+                    "example": "John Doe"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Email address (must be unique)",
+                    "example": "john.doe@example.com"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "Contact phone number",
+                    "example": "+94771234567"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": ["citizen", "coordinator", "technician", "admin"],
+                    "description": "User role in the system",
+                    "example": "citizen"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["active", "inactive", "suspended"],
+                    "description": "User account status (optional, defaults to 'active')",
+                    "default": "active",
+                    "example": "active"
+                  },
+                  "address": {
+                    "type": "object",
+                    "description": "User address (optional)",
+                    "properties": {
+                      "street": {
+                        "type": "string",
+                        "example": "123 Main Street"
+                      },
+                      "city": { "type": "string", "example": "Colombo" },
+                      "postalCode": { "type": "string", "example": "10100" },
+                      "coordinates": {
+                        "type": "object",
+                        "properties": {
+                          "lat": { "type": "number", "example": 6.9271 },
+                          "lng": { "type": "number", "example": 79.8612 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": {
+                      "type": "string",
+                      "example": "User created successfully"
+                    },
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required fields or validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "message": {
+                      "type": "string",
+                      "example": "Missing required fields (name, email, phone, role)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error (e.g., duplicate email)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "message": {
+                      "type": "string",
+                      "example": "email already exists"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}/role": {
+      "put": {
+        "summary": "Update user role",
+        "tags": ["Admin"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": ["citizen", "coordinator", "technician", "admin"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "User role updated" } }
+      }
+    },
+    "/api/admin/users/{id}": {
+      "delete": {
+        "summary": "Delete a user",
+        "tags": ["Admin"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "User deleted successfully" } }
+      }
+    },
+    "/api/admin/reports/collections": {
+      "get": {
+        "summary": "Get collection statistics report",
+        "tags": ["Admin"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "startDate",
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "in": "query",
+            "name": "endDate",
+            "schema": { "type": "string", "format": "date" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Collection statistics retrieved" }
+        }
+      }
+    },
+    "/api/admin/reports/efficiency": {
+      "get": {
+        "summary": "Get route efficiency report",
+        "tags": ["Admin"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "startDate",
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "in": "query",
+            "name": "endDate",
+            "schema": { "type": "string", "format": "date" }
+          }
+        ],
+        "responses": { "200": { "description": "Efficiency report retrieved" } }
+      }
+    },
+    "/api/admin/reports/devices": {
+      "get": {
+        "summary": "Get device uptime and maintenance report",
+        "tags": ["Admin"],
+        "responses": { "200": { "description": "Device report retrieved" } }
+      }
+    },
+    "/api/admin/system/health": {
+      "get": {
+        "summary": "Get system health status",
+        "tags": ["Admin"],
+        "responses": { "200": { "description": "System health retrieved" } }
+      }
+    },
+    "/api/admin/dashboard": {
+      "get": {
+        "summary": "Get admin dashboard with system overview",
+        "tags": ["Admin"],
+        "responses": {
+          "200": { "description": "Admin dashboard data retrieved" }
+        }
+      }
+    },
+    "/api/admin/export": {
+      "get": {
+        "summary": "Export system data",
+        "tags": ["Admin"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "format",
+            "schema": { "type": "string", "enum": ["json", "csv"] }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string",
+              "enum": ["users", "requests", "bins", "routes"]
+            }
+          }
+        ],
+        "responses": { "200": { "description": "Data exported successfully" } }
+      }
+    },
+    "/api/citizen/requests": {
+      "post": {
+        "summary": "Create waste pickup request",
+        "tags": ["Citizen"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId",
+                  "wasteType",
+                  "quantity",
+                  "address",
+                  "preferredDate"
+                ],
+                "properties": {
+                  "userId": { "type": "string" },
+                  "wasteType": {
+                    "type": "string",
+                    "enum": ["household", "bulky", "e-waste", "recyclable"]
+                  },
+                  "quantity": { "type": "string" },
+                  "address": {
+                    "type": "object",
+                    "properties": {
+                      "street": { "type": "string" },
+                      "city": { "type": "string" },
+                      "coordinates": {
+                        "type": "object",
+                        "properties": {
+                          "lat": { "type": "number" },
+                          "lng": { "type": "number" }
+                        }
+                      }
+                    }
+                  },
+                  "preferredDate": { "type": "string", "format": "date" },
+                  "description": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Request created successfully" },
+          "400": { "description": "Invalid input" }
+        }
+      },
+      "get": {
+        "summary": "Get user's waste requests with filtering",
+        "tags": ["Citizen"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "userId",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          { "in": "query", "name": "status", "schema": { "type": "string" } },
+          { "in": "query", "name": "page", "schema": { "type": "integer" } },
+          { "in": "query", "name": "limit", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Requests retrieved successfully" }
+        }
+      }
+    },
+    "/api/citizen/requests/{id}": {
+      "get": {
+        "summary": "Get request details by ID",
+        "tags": ["Citizen"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Request details retrieved" },
+          "404": { "description": "Request not found" }
+        }
+      }
+    },
+    "/api/citizen/requests/{id}/track": {
+      "get": {
+        "summary": "Track specific request with detailed timeline",
+        "tags": ["Citizen"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Request details with timeline" },
+          "404": { "description": "Request not found" }
+        }
+      }
+    },
+    "/api/citizen/requests/{id}/payment": {
+      "put": {
+        "summary": "Record payment for request",
+        "tags": ["Citizen"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount"],
+                "properties": {
+                  "amount": { "type": "number" },
+                  "paymentMethod": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Payment recorded successfully" }
+        }
+      }
+    },
+    "/api/citizen/requests/{id}/cancel": {
+      "put": {
+        "summary": "Cancel waste request",
+        "tags": ["Citizen"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Request cancelled successfully" }
+        }
+      }
+    },
+    "/api/citizen/bins/nearby": {
+      "get": {
+        "summary": "Find nearby smart bins",
+        "tags": ["Citizen"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lat",
+            "required": true,
+            "schema": { "type": "number" }
+          },
+          {
+            "in": "query",
+            "name": "lng",
+            "required": true,
+            "schema": { "type": "number" }
+          },
+          {
+            "in": "query",
+            "name": "radius",
+            "schema": { "type": "number", "default": 2000 }
+          },
+          { "in": "query", "name": "binType", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Nearby bins retrieved" } }
+      }
+    },
+    "/api/coordinator/dashboard": {
+      "get": {
+        "summary": "Get coordinator dashboard with statistics",
+        "tags": ["Coordinator"],
+        "responses": {
+          "200": {
+            "description": "Dashboard data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "bins": {
+                          "type": "object",
+                          "properties": {
+                            "total": { "type": "number" },
+                            "full": { "type": "number" },
+                            "filling": { "type": "number" }
+                          }
+                        },
+                        "requests": {
+                          "type": "object",
+                          "properties": {
+                            "pending": { "type": "number" },
+                            "approved": { "type": "number" }
+                          }
+                        },
+                        "routes": {
+                          "type": "object",
+                          "properties": { "active": { "type": "number" } }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/coordinator/bins": {
+      "get": {
+        "summary": "Get all bins with fill levels and status",
+        "tags": ["Coordinator"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "fillLevel[gte]",
+            "schema": { "type": "number" },
+            "description": "Filter bins by minimum fill level"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": { "type": "string" },
+            "description": "Filter by bin status"
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": { "type": "string" },
+            "description": "Sort field (e.g., fillLevel:desc)"
+          }
+        ],
+        "responses": { "200": { "description": "Bins retrieved successfully" } }
+      }
+    },
+    "/api/coordinator/requests/pending": {
+      "get": {
+        "summary": "Get pending waste pickup requests",
+        "tags": ["Coordinator"],
+        "responses": { "200": { "description": "Pending requests retrieved" } }
+      }
+    },
+    "/api/coordinator/requests/{id}/approve": {
+      "put": {
+        "summary": "Approve a waste request",
+        "tags": ["Coordinator"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "Request approved" } }
+      }
+    },
+    "/api/coordinator/requests/{id}/reject": {
+      "put": {
+        "summary": "Reject a waste request",
+        "tags": ["Coordinator"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "reason": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Request rejected" } }
+      }
+    },
+    "/api/coordinator/routes/optimize": {
+      "post": {
+        "summary": "Generate optimized collection route",
+        "tags": ["Coordinator"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fillLevelThreshold": { "type": "number", "default": 90 },
+                  "includeApprovedRequests": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "maxStops": { "type": "number", "default": 50 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Route optimized successfully" }
+        }
+      }
+    },
+    "/api/coordinator/routes": {
+      "post": {
+        "summary": "Create a new collection route",
+        "tags": ["Coordinator"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "routeName": { "type": "string" },
+                  "coordinatorId": { "type": "string" },
+                  "stops": { "type": "array" },
+                  "totalDistance": { "type": "number" },
+                  "estimatedDuration": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Route created" } }
+      },
+      "get": {
+        "summary": "Get all routes with filtering",
+        "tags": ["Coordinator"],
+        "parameters": [
+          { "in": "query", "name": "status", "schema": { "type": "string" } },
+          { "in": "query", "name": "page", "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Routes retrieved" } }
+      }
+    },
+    "/api/coordinator/routes/{id}": {
+      "get": {
+        "summary": "Get route details",
+        "tags": ["Coordinator"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "Route details retrieved" } }
+      }
+    },
+    "/api/coordinator/routes/{id}/assign": {
+      "put": {
+        "summary": "Assign route to crew",
+        "tags": ["Coordinator"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "crewId": { "type": "string" },
+                  "vehicleId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Route assigned successfully" } }
+      }
+    },
+    "/api/coordinator/routes/{id}/status": {
+      "put": {
+        "summary": "Update route status",
+        "tags": ["Coordinator"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "assigned",
+                      "in-progress",
+                      "completed",
+                      "cancelled"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Status updated" } }
+      }
+    },
+    "/api/coordinator/routes/{id}/stops/{stopIndex}": {
+      "put": {
+        "summary": "Update stop status in route",
+        "tags": ["Coordinator"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "in": "path",
+            "name": "stopIndex",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "completed", "skipped"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Stop status updated" } }
+      }
+    },
+    "/api/technician/work-orders": {
+      "get": {
+        "summary": "Get assigned work orders",
+        "tags": ["Technician"],
+        "parameters": [
+          { "in": "query", "name": "status", "schema": { "type": "string" } },
+          { "in": "query", "name": "priority", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Work orders retrieved" } }
+      }
+    },
+    "/api/technician/work-orders/{id}": {
+      "get": {
+        "summary": "Get work order details",
+        "tags": ["Technician"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "Work order details" } }
+      }
+    },
+    "/api/technician/work-orders/{id}/assign": {
+      "put": {
+        "summary": "Self-assign a work order",
+        "tags": ["Technician"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "Work order assigned" } }
+      }
+    },
+    "/api/technician/work-orders/{id}/start": {
+      "put": {
+        "summary": "Start working on a work order",
+        "tags": ["Technician"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "Work order started" } }
+      }
+    },
+    "/api/technician/work-orders/{id}/resolve": {
+      "put": {
+        "summary": "Resolve a work order",
+        "tags": ["Technician"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "actionTaken": {
+                    "type": "string",
+                    "enum": ["repaired", "replaced"]
+                  },
+                  "resolutionNotes": { "type": "string" },
+                  "newDeviceId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Work order resolved" } }
+      }
+    },
+    "/api/technician/work-orders/{id}/escalate": {
+      "put": {
+        "summary": "Escalate a work order",
+        "tags": ["Technician"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "reason": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Work order escalated" } }
+      }
+    },
+    "/api/technician/devices/register": {
+      "post": {
+        "summary": "Register a new device",
+        "tags": ["Technician"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "deviceId": { "type": "string" },
+                  "deviceType": { "type": "string" },
+                  "binId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Device registered" } }
+      }
+    },
+    "/api/technician/devices/{id}": {
+      "get": {
+        "summary": "Get device details",
+        "tags": ["Technician"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "Device details" } }
+      }
+    },
+    "/api/technician/devices/{id}/status": {
+      "put": {
+        "summary": "Update device status",
+        "tags": ["Technician"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["active", "offline", "decommissioned"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Device status updated" } }
+      }
+    }
+  }
+}

@@ -73,7 +73,15 @@ if (process.env.ENABLE_SWAGGER === 'true') {
     }
   }));
   
+  // Endpoint to download Swagger spec as JSON
+  app.get('/api/swagger.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="swagger-spec.json"');
+    res.json(swaggerDocument);
+  });
+  
   console.log('📚 Swagger documentation enabled at /api-docs');
+  console.log('📥 Swagger JSON download available at /api/swagger.json');
 }
 
 // ========================================
@@ -87,6 +95,7 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       docs: '/api-docs',
+      swaggerJson: '/api/swagger.json',
       health: '/health',
       logs: '/logs',
       citizen: '/api/citizen',
