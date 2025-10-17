@@ -298,16 +298,16 @@ exports.getNearbyBins = async (req, res) => {
     
     // Build query
     const query = {
-      'location.coordinates': {
+      "location.coordinates": {
         $near: {
           $geometry: {
-            type: 'Point',
-            coordinates: [longitude, latitude]
+            type: "Point",
+            coordinates: [longitude, latitude],
           },
-          $maxDistance: maxDistance
-        }
+          // $maxDistance: maxDistance
+        },
       },
-      status: 'active'
+      status: "active",
     };
     
     // Add bin type filter if provided
