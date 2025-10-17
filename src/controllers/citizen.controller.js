@@ -282,7 +282,7 @@ exports.updatePayment = async (req, res) => {
  */
 exports.getNearbyBins = async (req, res) => {
   try {
-    const { lat, lng, radius = 2000, binType } = req.query;
+    const { lat, lng, radius = 20000000, binType } = req.query;
     
     if (!lat || !lng) {
       return errorResponse(res, 'Latitude and longitude required', 400);
