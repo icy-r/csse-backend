@@ -1,66 +1,71 @@
 const mongoose = require('mongoose');
 
-const routeSchema = new mongoose.Schema({
-  routeName: {
-    type: String,
-    required: [true, 'Route name is required']
-  },
-  coordinatorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'Coordinator ID is required']
-  },
-  crewId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  },
-  vehicleId: String,
-  stops: [{
-    stopType: {
+const routeSchema = new mongoose.Schema(
+  {
+    routeName: {
       type: String,
-      enum: ['bin', 'request'],
-      required: true
+      required: [true, "Route name is required"],
     },
-    referenceId: {
+    coordinatorId: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      refPath: 'stops.stopType'
+      ref: "User",
+      required: false, // Optional for draft routes
     },
-    sequence: Number,
-    address: String,
-    coordinates: {
-      lat: Number,
-      lng: Number
+    crewId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
+    vehicleId: String,
+    stops: [
+      {
+        stopType: {
+          type: String,
+          enum: ["bin", "request"],
+          required: true,
+        },
+        referenceId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true,
+          refPath: "stops.stopType",
+        },
+        sequence: Number,
+        address: String,
+        coordinates: {
+          lat: Number,
+          lng: Number,
+        },
+        status: {
+          type: String,
+          enum: ["pending", "completed", "skipped"],
+          default: "pending",
+        },
+        completedAt: Date,
+        notes: String,
+      },
+    ],
     status: {
       type: String,
-      enum: ['pending', 'completed', 'skipped'],
-      default: 'pending'
+      enum: ["draft", "assigned", "in-progress", "completed", "cancelled"],
+      default: "draft",
     },
-    completedAt: Date,
-    notes: String
-  }],
-  status: {
-    type: String,
-    enum: ['draft', 'assigned', 'in-progress', 'completed', 'cancelled'],
-    default: 'draft'
+    scheduledDate: Date,
+    startTime: Date,
+    endTime: Date,
+    totalDistance: Number, // km
+    estimatedDuration: Number, // minutes
+    actualDuration: Number, // minutes
+    completionPercentage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    notes: String,
   },
-  scheduledDate: Date,
-  startTime: Date,
-  endTime: Date,
-  totalDistance: Number, // km
-  estimatedDuration: Number, // minutes
-  actualDuration: Number, // minutes
-  completionPercentage: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100
-  },
-  notes: String
-}, {
-  timestamps: true
-});
+  {
+    timestamps: true,
+  }
+);
 
 // Indexes for efficient queries
 routeSchema.index({ coordinatorId: 1, status: 1 });

@@ -205,39 +205,66 @@ exports.rejectRequest = async (req, res) => {
  */
 exports.optimizeRouteHandler = async (req, res) => {
   try {
-    const { 
-      fillLevelThreshold = 90, 
+    const {
+      fillLevelThreshold = 90,
       includePendingRequests = true,
       includeApprovedRequests = true,
       startLocation,
-      maxStops = 50
+      maxStops = 50,
+      coordinatorId,
+      routeName,
     } = req.body;
-    
+
     // Get bins above threshold
     const bins = await SmartBin.find({
-      status: 'active',
-      fillLevel: { $gte: fillLevelThreshold }
-    }).select('binId location fillLevel binType status');
-    
+      status: "active",
+      fillLevel: { $gte: fillLevelThreshold },
+    }).select("binId location fillLevel binType status");
+
     // Get approved requests
     let requests = [];
     if (includeApprovedRequests) {
       requests = await WasteRequest.find({
-        status: 'approved'
-      }).select('trackingId wasteType address');
+        status: "approved",
+      }).select("trackingId wasteType address");
     }
-    
+
     // Optimize route
     const optimized = optimizeRoute(bins, requests, {
       fillLevelThreshold,
       startLocation: startLocation || { lat: 6.9271, lng: 79.8612 },
-      maxStops
+      maxStops,
     });
-    
-    return successResponse(res, 'Route optimized successfully', optimized);
-    
+
+    // Generate route name if not provided
+    const generatedRouteName =
+      routeName ||
+      `Optimized Route - ${new Date().toISOString().split("T")[0]}`;
+
+    // Create and save the optimized route
+    const route = await Route.create({
+      routeName: generatedRouteName,
+      coordinatorId: coordinatorId || null,
+      stops: optimized.stops,
+      totalDistance: optimized.totalDistance,
+      estimatedDuration: optimized.estimatedDuration,
+      scheduledDate: new Date(),
+      status: "draft",
+    });
+
+    return successResponse(
+      res,
+      "Route optimized and created successfully",
+      {
+        ...optimized,
+        routeId: route._id,
+        routeName: route.routeName,
+        status: route.status,
+      },
+      201
+    );
   } catch (error) {
-    console.error('Error optimizing route:', error);
+    console.error("Error optimizing route:", error);
     return errorResponse(res, error.message, 500);
   }
 };
@@ -248,33 +275,53 @@ exports.optimizeRouteHandler = async (req, res) => {
  */
 exports.createRoute = async (req, res) => {
   try {
-    const { 
-      routeName, 
-      coordinatorId, 
-      stops, 
-      scheduledDate,
-      totalDistance,
-      estimatedDuration
-    } = req.body;
-    
-    if (!routeName || !coordinatorId || !stops || stops.length === 0) {
-      return errorResponse(res, 'Missing required fields', 400);
-    }
-    
-    const route = await Route.create({
+    const {
       routeName,
       coordinatorId,
-      stops,
-      scheduledDate: scheduledDate || new Date(),
+      stops = [],
+      scheduledDate,
       totalDistance,
       estimatedDuration,
-      status: 'draft'
+      status = "draft",
+    } = req.body;
+
+    // Validate route name is provided
+    if (!routeName || routeName.trim().length === 0) {
+      return errorResponse(res, "Route name is required", 400);
+    }
+
+    // For draft routes, allow empty stops and optional coordinatorId
+    // For other statuses, require coordinatorId and at least one stop
+    if (status !== "draft") {
+      if (!coordinatorId) {
+        return errorResponse(
+          res,
+          "Coordinator ID is required for non-draft routes",
+          400
+        );
+      }
+      if (!stops || stops.length === 0) {
+        return errorResponse(
+          res,
+          "At least one stop is required for non-draft routes",
+          400
+        );
+      }
+    }
+
+    const route = await Route.create({
+      routeName: routeName.trim(),
+      coordinatorId: coordinatorId || null,
+      stops: stops || [],
+      scheduledDate: scheduledDate || new Date(),
+      totalDistance: totalDistance || 0,
+      estimatedDuration: estimatedDuration || 0,
+      status: status,
     });
-    
-    return successResponse(res, 'Route created successfully', route, 201);
-    
+
+    return successResponse(res, "Route created successfully", route, 201);
   } catch (error) {
-    console.error('Error creating route:', error);
+    console.error("Error creating route:", error);
     return errorResponse(res, error.message, 500);
   }
 };
