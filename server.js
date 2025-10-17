@@ -41,80 +41,90 @@ app.use(logger);
 // ========================================
 
 // Import routes
-const citizenRoutes = require('./src/routes/citizen.routes');
-const coordinatorRoutes = require('./src/routes/coordinator.routes');
-const technicianRoutes = require('./src/routes/technician.routes');
-const adminRoutes = require('./src/routes/admin.routes');
-const logsRoutes = require('./src/routes/logs.routes');
+const authRoutes = require("./src/routes/auth.routes");
+const citizenRoutes = require("./src/routes/citizen.routes");
+const coordinatorRoutes = require("./src/routes/coordinator.routes");
+const technicianRoutes = require("./src/routes/technician.routes");
+const adminRoutes = require("./src/routes/admin.routes");
+const logsRoutes = require("./src/routes/logs.routes");
 
 // Mount routes
-app.use('/api/citizen', citizenRoutes);
-app.use('/api/coordinator', coordinatorRoutes);
-app.use('/api/technician', technicianRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/logs', logsRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/citizen", citizenRoutes);
+app.use("/api/coordinator", coordinatorRoutes);
+app.use("/api/technician", technicianRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/logs", logsRoutes);
 
 // ========================================
 // SWAGGER DOCUMENTATION
 // ========================================
 
-if (process.env.ENABLE_SWAGGER === 'true') {
-  const swaggerUi = require('swagger-ui-express');
-  const swaggerDocument = require('./docs/swagger');
-  
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-    customSiteTitle: 'Waste Management API Docs',
-    customCss: '.swagger-ui .topbar { display: none }',
-    swaggerOptions: {
-      persistAuthorization: true,
-      displayRequestDuration: true,
-      filter: true,
-      tryItOutEnabled: true
-    }
-  }));
-  
+if (process.env.ENABLE_SWAGGER === "true") {
+  const swaggerUi = require("swagger-ui-express");
+  const swaggerDocument = require("./docs/swagger");
+
+  app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerDocument, {
+      customSiteTitle: "Waste Management API Docs",
+      customCss: ".swagger-ui .topbar { display: none }",
+      swaggerOptions: {
+        persistAuthorization: true,
+        displayRequestDuration: true,
+        filter: true,
+        tryItOutEnabled: true,
+      },
+    })
+  );
+
   // Endpoint to download Swagger spec as JSON
-  app.get('/api/swagger.json', (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', 'attachment; filename="swagger-spec.json"');
+  app.get("/api/swagger.json", (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="swagger-spec.json"'
+    );
     res.json(swaggerDocument);
   });
-  
-  console.log('📚 Swagger documentation enabled at /api-docs');
-  console.log('📥 Swagger JSON download available at /api/swagger.json');
+
+  console.log("📚 Swagger documentation enabled at /api-docs");
+  console.log("📥 Swagger JSON download available at /api/swagger.json");
 }
 
 // ========================================
 // HEALTH CHECK & ROOT
 // ========================================
 
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: 'Smart Waste Management API',
-    version: '1.0.0',
+    message: "Smart Waste Management API",
+    version: "1.0.0",
     endpoints: {
-      docs: '/api-docs',
-      swaggerJson: '/api/swagger.json',
-      health: '/health',
-      logs: '/logs',
-      citizen: '/api/citizen',
-      coordinator: '/api/coordinator',
-      technician: '/api/technician',
-      admin: '/api/admin'
+      docs: "/api-docs",
+      swaggerJson: "/api/swagger.json",
+      health: "/health",
+      logs: "/logs",
+      auth: "/api/auth",
+      citizen: "/api/citizen",
+      coordinator: "/api/coordinator",
+      technician: "/api/technician",
+      admin: "/api/admin",
     },
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
-app.get('/health', (req, res) => {
+app.get("/health", (req, res) => {
   res.json({
     success: true,
-    status: 'healthy',
+    status: "healthy",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development',
-    database: 'connected' // Will be updated after DB connection
+    environment: process.env.NODE_ENV || "development",
+    database: "connected", // Will be updated after DB connection
   });
 });
 
@@ -122,15 +132,15 @@ app.get('/health', (req, res) => {
 // ERROR HANDLING
 // ========================================
 
-const errorHandler = require('./src/middleware/errorHandler');
+const errorHandler = require("./src/middleware/errorHandler");
 app.use(errorHandler);
 
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Route not found',
-    path: req.path
+    message: "Route not found",
+    path: req.path,
   });
 });
 
@@ -138,14 +148,14 @@ app.use((req, res) => {
 // SOCKET.IO CONNECTION HANDLING
 // ========================================
 
-const socketLogger = require('./src/services/socketLogger.service');
+const socketLogger = require("./src/services/socketLogger.service");
 
-io.on('connection', (socket) => {
-  console.log('📡 Client connected to logger');
+io.on("connection", (socket) => {
+  console.log("📡 Client connected to logger");
   socketLogger.addClient(socket);
-  
-  socket.on('disconnect', () => {
-    console.log('📡 Client disconnected from logger');
+
+  socket.on("disconnect", () => {
+    console.log("📡 Client disconnected from logger");
   });
 });
 
@@ -153,39 +163,46 @@ io.on('connection', (socket) => {
 // DATABASE CONNECTION & SERVER START
 // ========================================
 
-const connectDB = require('./src/config/database');
+const connectDB = require("./src/config/database");
 
-connectDB().then(() => {
-  const PORT = process.env.PORT || 5000;
-  
-  server.listen(PORT, () => {
-    console.log('');
-    console.log('╔════════════════════════════════════════════╗');
-    console.log('║  Smart Waste Management API - MVP Backend ║');
-    console.log('╚════════════════════════════════════════════╝');
-    console.log('');
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log('');
-    console.log('📍 Endpoints:');
-    console.log(`   └─ Root:          http://localhost:${PORT}/`);
-    console.log(`   └─ Health:        http://localhost:${PORT}/health`);
-    console.log(`   └─ API Docs:      http://localhost:${PORT}/api-docs`);
-    console.log(`   └─ Logger UI:     http://localhost:${PORT}/logs`);
-    console.log('');
-    console.log('📡 API Routes:');
-    console.log(`   └─ Citizen:       http://localhost:${PORT}/api/citizen`);
-    console.log(`   └─ Coordinator:   http://localhost:${PORT}/api/coordinator`);
-    console.log(`   └─ Technician:    http://localhost:${PORT}/api/technician`);
-    console.log(`   └─ Admin:         http://localhost:${PORT}/api/admin`);
-    console.log('');
-    console.log('✨ Ready to accept requests');
-    console.log('');
+connectDB()
+  .then(() => {
+    const PORT = process.env.PORT || 5000;
+
+    server.listen(PORT, () => {
+      console.log("");
+      console.log("╔════════════════════════════════════════════╗");
+      console.log("║  Smart Waste Management API - MVP Backend ║");
+      console.log("╚════════════════════════════════════════════╝");
+      console.log("");
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+      console.log("");
+      console.log("📍 Endpoints:");
+      console.log(`   └─ Root:          http://localhost:${PORT}/`);
+      console.log(`   └─ Health:        http://localhost:${PORT}/health`);
+      console.log(`   └─ API Docs:      http://localhost:${PORT}/api-docs`);
+      console.log(`   └─ Logger UI:     http://localhost:${PORT}/logs`);
+      console.log("");
+      console.log("📡 API Routes:");
+      console.log(`   └─ Auth:          http://localhost:${PORT}/api/auth`);
+      console.log(`   └─ Citizen:       http://localhost:${PORT}/api/citizen`);
+      console.log(
+        `   └─ Coordinator:   http://localhost:${PORT}/api/coordinator`
+      );
+      console.log(
+        `   └─ Technician:    http://localhost:${PORT}/api/technician`
+      );
+      console.log(`   └─ Admin:         http://localhost:${PORT}/api/admin`);
+      console.log("");
+      console.log("✨ Ready to accept requests");
+      console.log("");
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Failed to start server:", err.message);
+    process.exit(1);
   });
-}).catch((err) => {
-  console.error('❌ Failed to start server:', err.message);
-  process.exit(1);
-});
 
 // ========================================
 // GRACEFUL SHUTDOWN
