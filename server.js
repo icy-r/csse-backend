@@ -44,6 +44,7 @@ app.use(logger);
 const authRoutes = require("./src/routes/auth.routes");
 const userRoutes = require("./src/routes/user.routes");
 const binRoutes = require("./src/routes/bin.routes");
+const deviceRoutes = require("./src/routes/device.routes");
 const workOrderRoutes = require("./src/routes/workorder.routes");
 const citizenRoutes = require("./src/routes/citizen.routes");
 const coordinatorRoutes = require("./src/routes/coordinator.routes");
@@ -55,6 +56,7 @@ const logsRoutes = require("./src/routes/logs.routes");
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/bins", binRoutes);
+app.use("/api/devices", deviceRoutes);
 app.use("/api/work-orders", workOrderRoutes);
 app.use("/api/citizen", citizenRoutes);
 app.use("/api/coordinator", coordinatorRoutes);
@@ -116,6 +118,7 @@ app.get("/", (req, res) => {
       auth: "/api/auth",
       users: "/api/users",
       bins: "/api/bins",
+      devices: "/api/devices",
       workOrders: "/api/work-orders",
       citizen: "/api/citizen",
       coordinator: "/api/coordinator",
@@ -197,7 +200,10 @@ connectDB()
       console.log(`   └─ Auth:          http://localhost:${PORT}/api/auth`);
       console.log(`   └─ Users:         http://localhost:${PORT}/api/users`);
       console.log(`   └─ Bins:          http://localhost:${PORT}/api/bins`);
-      console.log(`   └─ Work Orders:   http://localhost:${PORT}/api/work-orders`);
+      console.log(`   └─ Devices:       http://localhost:${PORT}/api/devices`);
+      console.log(
+        `   └─ Work Orders:   http://localhost:${PORT}/api/work-orders`
+      );
       console.log(`   └─ Citizen:       http://localhost:${PORT}/api/citizen`);
       console.log(
         `   └─ Coordinator:   http://localhost:${PORT}/api/coordinator`
