@@ -12,6 +12,50 @@ const buildQuery = require('../middleware/queryBuilder');
 
 /**
  * @swagger
+ * /api/crew/dashboard:
+ *   get:
+ *     summary: Get crew dashboard with statistics and current assignments
+ *     tags: [Crew]
+ *     parameters:
+ *       - in: query
+ *         name: crewId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Crew member's user ID
+ *     responses:
+ *       200:
+ *         description: Dashboard data retrieved successfully
+ *       400:
+ *         description: Crew ID is required
+ *       404:
+ *         description: Crew member not found
+ */
+router.get('/dashboard', crewController.getCrewDashboard);
+
+/**
+ * @swagger
+ * /api/crew/routes/active:
+ *   get:
+ *     summary: Get crew's active route
+ *     tags: [Crew]
+ *     parameters:
+ *       - in: query
+ *         name: crewId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Crew member's user ID
+ *     responses:
+ *       200:
+ *         description: Active route retrieved successfully
+ *       400:
+ *         description: Crew ID is required
+ */
+router.get('/routes/active', crewController.getActiveRoute);
+
+/**
+ * @swagger
  * /api/crew/routes:
  *   get:
  *     summary: Get crew's assigned routes

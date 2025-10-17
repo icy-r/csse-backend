@@ -7,6 +7,131 @@ const { successResponse, errorResponse } = require('../utils/response');
 const { buildPaginationResponse } = require('../middleware/queryBuilder');
 
 /**
+ * Get crew dashboard with statistics and current assignments
+ * GET /api/crew/dashboard
+ */
+exports.getCrewDashboard = async (req, res) => {
+  try {
+    const { crewId } = req.query;
+    
+    if (!crewId) {
+      return errorResponse(res, 'Crew ID is required', 400);
+    }
+    
+    // Get crew user details
+    const crew = await User.findById(crewId).select('-password');
+    if (!crew || crew.role !== 'crew') {
+      return errorResponse(res, 'Crew member not found', 404);
+    }
+    
+    // Get crew profile
+    let profile = await CrewProfile.findOne({ userId: crewId });
+    if (!profile) {
+      profile = await CrewProfile.create({ userId: crewId });
+    }
+    
+    // Get route statistics
+    const [totalRoutes, completedRoutes, activeRoute, pendingRoutes] = await Promise.all([
+      Route.countDocuments({ crewId }),
+      Route.countDocuments({ crewId, status: 'completed' }),
+      Route.findOne({ crewId, status: { $in: ['assigned', 'in-progress'] } })
+        .populate('coordinatorId', 'name phone')
+        .select('routeName status scheduledDate startTime stops'),
+      Route.countDocuments({ crewId, status: { $in: ['assigned', 'pending'] } })
+    ]);
+    
+    // Calculate completion rate
+    const completionRate = totalRoutes > 0 ? Math.round((completedRoutes / totalRoutes) * 100) : 0;
+    
+    // Get recent activity (last 5 routes)
+    const recentRoutes = await Route
+      .find({ crewId })
+      .sort({ scheduledDate: -1 })
+      .limit(5)
+      .select('routeName status scheduledDate completionPercentage');
+    
+    const dashboardData = {
+      crew: {
+        id: crew._id,
+        name: crew.name,
+        email: crew.email,
+        phone: crew.phone
+      },
+      profile: {
+        vehicleId: profile.vehicleId,
+        availability: profile.availability,
+        lastUpdated: profile.lastUpdated
+      },
+      statistics: {
+        totalRoutes,
+        completedRoutes,
+        pendingRoutes,
+        completionRate
+      },
+      activeRoute: activeRoute ? {
+        id: activeRoute._id,
+        name: activeRoute.routeName,
+        status: activeRoute.status,
+        scheduledDate: activeRoute.scheduledDate,
+        startTime: activeRoute.startTime,
+        totalStops: activeRoute.stops.length,
+        completedStops: activeRoute.stops.filter(s => s.status === 'completed').length,
+        coordinator: activeRoute.coordinatorId
+      } : null,
+      recentActivity: recentRoutes
+    };
+    
+    return successResponse(res, 'Dashboard data retrieved successfully', dashboardData);
+    
+  } catch (error) {
+    console.error('Error fetching crew dashboard:', error);
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+/**
+ * Get crew's active route
+ * GET /api/crew/routes/active
+ */
+exports.getActiveRoute = async (req, res) => {
+  try {
+    const { crewId } = req.query;
+    
+    if (!crewId) {
+      return errorResponse(res, 'Crew ID is required', 400);
+    }
+    
+    const activeRoute = await Route.findOne({ 
+      crewId, 
+      status: { $in: ['assigned', 'in-progress'] } 
+    })
+    .populate('coordinatorId', 'name phone email')
+    .select('routeName status scheduledDate startTime endTime stops notes vehicleId');
+    
+    if (!activeRoute) {
+      return successResponse(res, 'No active route found', null);
+    }
+    
+    // Format route with stop details
+    const formattedRoute = {
+      ...activeRoute.toObject(),
+      totalStops: activeRoute.stops.length,
+      completedStops: activeRoute.stops.filter(s => s.status === 'completed').length,
+      pendingStops: activeRoute.stops.filter(s => s.status === 'pending').length,
+      completionPercentage: activeRoute.stops.length > 0 
+        ? Math.round((activeRoute.stops.filter(s => s.status === 'completed').length / activeRoute.stops.length) * 100)
+        : 0
+    };
+    
+    return successResponse(res, 'Active route retrieved successfully', formattedRoute);
+    
+  } catch (error) {
+    console.error('Error fetching active route:', error);
+    return errorResponse(res, error.message, 500);
+  }
+};
+
+/**
  * Get crew's assigned routes
  * GET /api/crew/routes
  */
