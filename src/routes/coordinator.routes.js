@@ -435,5 +435,205 @@ router.get('/crews/:id', coordinatorController.getCrewDetails);
  */
 router.put('/crews/:id/availability', coordinatorController.updateCrewAvailability);
 
+// Vehicle Management Routes
+const vehicleController = require('../controllers/vehicle.controller');
+
+/**
+ * @swagger
+ * /api/coordinator/vehicles:
+ *   get:
+ *     summary: Get all vehicles with filtering
+ *     tags: [Coordinator]
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [available, in-use, maintenance, decommissioned]
+ *         description: Filter by vehicle status
+ *       - in: query
+ *         name: vehicleType
+ *         schema:
+ *           type: string
+ *         description: Filter by vehicle type
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Vehicles retrieved successfully
+ *   post:
+ *     summary: Create new vehicle
+ *     tags: [Coordinator]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - vehicleId
+ *               - licensePlate
+ *               - vehicleType
+ *               - capacity
+ *             properties:
+ *               vehicleId:
+ *                 type: string
+ *               licensePlate:
+ *                 type: string
+ *               vehicleType:
+ *                 type: string
+ *                 enum: [truck, van, compactor, pickup]
+ *               capacity:
+ *                 type: number
+ *               manufacturer:
+ *                 type: string
+ *               model:
+ *                 type: string
+ *               year:
+ *                 type: number
+ *               fuelType:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Vehicle created successfully
+ */
+router.get('/vehicles', buildQuery(['status', 'vehicleType', 'vehicleId']), vehicleController.getVehicles);
+router.post('/vehicles', vehicleController.createVehicle);
+
+/**
+ * @swagger
+ * /api/coordinator/vehicles/available:
+ *   get:
+ *     summary: Get available vehicles for route assignment
+ *     tags: [Coordinator]
+ *     responses:
+ *       200:
+ *         description: Available vehicles retrieved
+ */
+router.get('/vehicles/available', vehicleController.getAvailableVehicles);
+
+/**
+ * @swagger
+ * /api/coordinator/vehicles/{id}:
+ *   get:
+ *     summary: Get vehicle details
+ *     tags: [Coordinator]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Vehicle details retrieved
+ *   put:
+ *     summary: Update vehicle
+ *     tags: [Coordinator]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Vehicle updated
+ *   delete:
+ *     summary: Delete vehicle
+ *     tags: [Coordinator]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Vehicle deleted
+ */
+router.get('/vehicles/:id', vehicleController.getVehicleDetails);
+router.put('/vehicles/:id', vehicleController.updateVehicle);
+router.delete('/vehicles/:id', vehicleController.deleteVehicle);
+
+/**
+ * @swagger
+ * /api/coordinator/vehicles/{id}/status:
+ *   put:
+ *     summary: Update vehicle status
+ *     tags: [Coordinator]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [available, in-use, maintenance, decommissioned]
+ *     responses:
+ *       200:
+ *         description: Status updated
+ */
+router.put('/vehicles/:id/status', vehicleController.updateVehicleStatus);
+
+/**
+ * @swagger
+ * /api/coordinator/vehicles/{id}/maintenance:
+ *   post:
+ *     summary: Add maintenance record to vehicle
+ *     tags: [Coordinator]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - type
+ *               - description
+ *             properties:
+ *               type:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               cost:
+ *                 type: number
+ *               technicianName:
+ *                 type: string
+ *               mileageAtService:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Maintenance record added
+ */
+router.post('/vehicles/:id/maintenance', vehicleController.addMaintenanceRecord);
+
 module.exports = router;
 
