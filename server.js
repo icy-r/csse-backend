@@ -51,6 +51,7 @@ const coordinatorRoutes = require("./src/routes/coordinator.routes");
 const crewRoutes = require("./src/routes/crew.routes");
 const technicianRoutes = require("./src/routes/technician.routes");
 const adminRoutes = require("./src/routes/admin.routes");
+const issueRoutes = require("./src/routes/issue.routes");
 const logsRoutes = require("./src/routes/logs.routes");
 
 // Mount routes
@@ -64,6 +65,7 @@ app.use("/api/coordinator", coordinatorRoutes);
 app.use("/api/crew", crewRoutes);
 app.use("/api/technician", technicianRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/issues", issueRoutes);
 app.use("/logs", logsRoutes);
 
 // ========================================
@@ -127,6 +129,7 @@ app.get("/", (req, res) => {
       crew: "/api/crew",
       technician: "/api/technician",
       admin: "/api/admin",
+      issues: "/api/issues",
     },
     timestamp: new Date().toISOString(),
   });
@@ -216,6 +219,7 @@ connectDB()
         `   └─ Technician:    http://localhost:${PORT}/api/technician`
       );
       console.log(`   └─ Admin:         http://localhost:${PORT}/api/admin`);
+      console.log(`   └─ Issues:        http://localhost:${PORT}/api/issues`);
       console.log("");
       console.log("✨ Ready to accept requests");
       console.log("");

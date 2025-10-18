@@ -243,78 +243,93 @@ exports.updateStopStatus = async (req, res) => {
   try {
     const { routeId, stopIndex } = req.params;
     const { status, notes } = req.body;
-    
+
     if (!status) {
-      return errorResponse(res, 'Status is required', 400);
+      return errorResponse(res, "Status is required", 400);
     }
-    
-    if (!['pending', 'completed', 'skipped'].includes(status)) {
-      return errorResponse(res, 'Invalid status. Must be: pending, completed, or skipped', 400);
+
+    if (!["pending", "completed", "skipped"].includes(status)) {
+      return errorResponse(
+        res,
+        "Invalid status. Must be: pending, completed, or skipped",
+        400
+      );
     }
-    
-    if (status === 'skipped' && !notes) {
-      return errorResponse(res, 'Notes are required when skipping a stop', 400);
+
+    if (status === "skipped" && !notes) {
+      return errorResponse(res, "Notes are required when skipping a stop", 400);
     }
-    
+
     const route = await Route.findById(routeId);
-    
+
     if (!route) {
-      return errorResponse(res, 'Route not found', 404);
+      return errorResponse(res, "Route not found", 404);
     }
-    
+
     const stopIdx = parseInt(stopIndex);
-    
+
     if (isNaN(stopIdx) || stopIdx < 0 || stopIdx >= route.stops.length) {
-      return errorResponse(res, 'Invalid stop index', 400);
+      return errorResponse(res, "Invalid stop index", 400);
     }
-    
+
     // Update stop status
     route.stops[stopIdx].status = status;
     if (notes) {
       route.stops[stopIdx].notes = notes;
     }
-    if (status === 'completed') {
+    if (status === "completed") {
       route.stops[stopIdx].completedAt = new Date();
     }
-    
+
     // Recalculate completion percentage
-    const completedStops = route.stops.filter(s => s.status === 'completed').length;
-    route.completionPercentage = Math.round((completedStops / route.stops.length) * 100);
-    
+    const completedStops = route.stops.filter(
+      (s) => s.status === "completed"
+    ).length;
+    route.completionPercentage = Math.round(
+      (completedStops / route.stops.length) * 100
+    );
+
     // Update route status based on completion
     if (route.completionPercentage === 100) {
-      route.status = 'completed';
+      route.status = "completed";
       route.endTime = new Date();
-      
+
       // Update crew profile
       const crewProfile = await CrewProfile.findOne({ userId: route.crewId });
       if (crewProfile) {
         await crewProfile.completeRoute();
       }
-    } else if (route.status === 'assigned' && completedStops > 0) {
-      route.status = 'in-progress';
+    } else if (route.status === "assigned" && completedStops > 0) {
+      route.status = "in-progress";
       route.startTime = route.startTime || new Date();
     }
-    
+
     await route.save();
-    
+
     // If it's a waste request, update its status
     const stop = route.stops[stopIdx];
-    if (stop.stopType === 'request' && status === 'completed') {
+    if (stop.stopType === "request" && status === "completed") {
       await WasteRequest.findByIdAndUpdate(stop.referenceId, {
-        status: 'completed',
-        completedDate: new Date()
+        status: "completed",
+        completedDate: new Date(),
       });
     }
-    
-    return successResponse(res, 'Stop status updated successfully', {
+
+    // If it's a bin and completed, empty the bin
+    if (status === "completed" && stop.stopType === "bin") {
+      const bin = await SmartBin.findById(stop.referenceId);
+      if (bin) {
+        await bin.empty();
+      }
+    }
+
+    return successResponse(res, "Stop status updated successfully", {
       routeId: route._id,
       stopIndex: stopIdx,
       status: stop.status,
       completionPercentage: route.completionPercentage,
-      routeStatus: route.status
+      routeStatus: route.status,
     });
-    
   } catch (error) {
     console.error('Error updating stop status:', error);
     return errorResponse(res, error.message, 500);
