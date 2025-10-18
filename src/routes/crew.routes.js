@@ -613,12 +613,25 @@ router.get('/routes/:id', crewController.getRouteDetails);
  *                 type: string
  *                 description: Optional notes (required when status is 'skipped')
  *                 maxLength: 500
+ *               wasteQuantity:
+ *                 type: number
+ *                 description: Optional - Quantity of waste collected (in kg or liters)
+ *               collectionTime:
+ *                 type: number
+ *                 description: Optional - Time taken for collection (in minutes)
  *           examples:
  *             completed:
  *               summary: Mark stop as completed
  *               value:
  *                 status: "completed"
  *                 notes: "Successfully collected waste"
+ *             completed_with_details:
+ *               summary: Mark stop as completed with collection details
+ *               value:
+ *                 status: "completed"
+ *                 notes: "Collected from residential bin"
+ *                 wasteQuantity: 45.5
+ *                 collectionTime: 3
  *             skipped:
  *               summary: Skip stop with reason
  *               value:
@@ -626,7 +639,7 @@ router.get('/routes/:id', crewController.getRouteDetails);
  *                 notes: "Bin was inaccessible due to construction"
  *     responses:
  *       200:
- *         description: Stop status updated successfully
+ *         description: Stop status updated successfully. If stop type is 'bin' and status is 'completed', the bin will be automatically emptied.
  *         content:
  *           application/json:
  *             schema:
@@ -655,6 +668,9 @@ router.get('/routes/:id', crewController.getRouteDetails);
  *                       type: string
  *                       enum: [assigned, in-progress, completed]
  *                       description: Updated route status
+ *               description: |
+ *                 Note: When marking a bin stop as completed, the bin's fill level is automatically reset to 0,
+ *                 lastEmptied is updated, and collectionCount is incremented.
  *       400:
  *         description: Invalid request data
  *         content:
@@ -710,6 +726,8 @@ router.put('/routes/:routeId/stops/:stopIndex', crewController.updateStopStatus)
  * /api/crew/issues:
  *   post:
  *     summary: Report issues encountered during waste collection
+ *     deprecated: true
+ *     description: This endpoint is deprecated. Please use POST /api/issues instead for better issue tracking and management.
  *     tags: [Crew]
  *     requestBody:
  *       required: true

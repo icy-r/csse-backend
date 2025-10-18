@@ -242,7 +242,7 @@ exports.getRouteDetails = async (req, res) => {
 exports.updateStopStatus = async (req, res) => {
   try {
     const { routeId, stopIndex } = req.params;
-    const { status, notes } = req.body;
+    const { status, notes, wasteQuantity, collectionTime } = req.body;
 
     if (!status) {
       return errorResponse(res, "Status is required", 400);
@@ -279,6 +279,14 @@ exports.updateStopStatus = async (req, res) => {
     }
     if (status === "completed") {
       route.stops[stopIdx].completedAt = new Date();
+      
+      // Add collection details if provided
+      if (wasteQuantity !== undefined) {
+        route.stops[stopIdx].wasteQuantity = wasteQuantity;
+      }
+      if (collectionTime !== undefined) {
+        route.stops[stopIdx].collectionTime = collectionTime;
+      }
     }
 
     // Recalculate completion percentage
