@@ -607,22 +607,48 @@ exports.getCrews = async (req, res) => {
     const sortObj = typeof sort === "object" && sort !== null ? sort : {};
     const sortOrder = Object.keys(sortObj).length > 0 ? sortObj : { name: 1 };
 
-    const [crews, total] = await Promise.all([
-      User.find(query)
-        .select("name email phone status lastLogin createdAt")
-        .sort(sortOrder)
-        .skip(skip)
-        .limit(limit),
-      User.countDocuments(query),
-    ]);
+    // Execute queries with error handling
+    let crews, total;
+    try {
+      [crews, total] = await Promise.all([
+        User.find(query)
+          .select("name email phone status lastLogin createdAt")
+          .sort(sortOrder)
+          .skip(skip)
+          .limit(limit),
+        User.countDocuments(query),
+      ]);
+    } catch (error) {
+      console.error("Error executing crew queries:", error);
+      console.error("Query:", JSON.stringify(query));
+      console.error("Sort:", JSON.stringify(sortOrder));
+      throw error;
+    }
+
+    if (!crews) {
+      console.error("crews is undefined or null");
+      throw new Error("Failed to fetch crews from database");
+    }
+
+    if (!Array.isArray(crews)) {
+      console.error("crews is not an array:", typeof crews, crews);
+      throw new Error("Invalid crews data format");
+    }
 
     // Get crew profiles and current route assignments
     const crewsWithDetails = await Promise.all(
       crews.map(async (crew) => {
         try {
+          // Validate crew object
+          if (!crew || !crew._id) {
+            console.error("Invalid crew object:", crew);
+            return null;
+          }
+
           const profile = await CrewProfile.findOne({ userId: crew._id });
           let currentRoute = null;
 
+          // Fetch current route with error handling
           if (profile?.currentRouteId) {
             try {
               currentRoute = await Route.findById(
@@ -643,11 +669,8 @@ exports.getCrews = async (req, res) => {
             currentRoute: currentRoute || null,
             availability: profile?.availability || "available",
           };
-        } catch (profileError) {
-          console.warn(
-            `Failed to fetch profile for crew ${crew._id}:`,
-            profileError.message
-          );
+        } catch (error) {
+          console.error(`Error processing crew ${crew._id}:`, error);
           return {
             ...crew.toObject(),
             profile: null,
@@ -656,7 +679,7 @@ exports.getCrews = async (req, res) => {
           };
         }
       })
-    );
+    ).then((results) => results.filter(Boolean)); // Remove null results
 
     // Ensure pagination parameters are valid numbers
     const validPage = Math.max(1, parseInt(page) || 1);
