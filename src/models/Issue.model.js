@@ -17,76 +17,86 @@ const commentSchema = new mongoose.Schema({
   }
 });
 
-const issueSchema = new mongoose.Schema({
-  issueId: {
-    type: String,
-    unique: true,
-    required: true
+const issueSchema = new mongoose.Schema(
+  {
+    issueId: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null values during creation, unique constraint applies only to non-null values
+    },
+    crewId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    routeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Route",
+      default: null,
+    },
+    issueType: {
+      type: String,
+      required: true,
+      enum: [
+        "blocked-access",
+        "bin-damaged",
+        "bin-overflow",
+        "safety-hazard",
+        "vehicle-issue",
+        "other",
+      ],
+    },
+    description: {
+      type: String,
+      required: true,
+      maxlength: 1000,
+    },
+    location: {
+      type: String,
+      maxlength: 200,
+    },
+    stopIndex: {
+      type: Number,
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: ["reported", "acknowledged", "in-progress", "resolved", "closed"],
+      default: "reported",
+    },
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high", "critical"],
+      default: "medium",
+    },
+    reportedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    acknowledgedAt: {
+      type: Date,
+      default: null,
+    },
+    resolvedAt: {
+      type: Date,
+      default: null,
+    },
+    resolvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    resolution: {
+      type: String,
+      maxlength: 500,
+      default: null,
+    },
+    comments: [commentSchema],
   },
-  crewId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  routeId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Route',
-    default: null
-  },
-  issueType: {
-    type: String,
-    required: true,
-    enum: ['blocked-access', 'bin-damaged', 'bin-overflow', 'safety-hazard', 'vehicle-issue', 'other']
-  },
-  description: {
-    type: String,
-    required: true,
-    maxlength: 1000
-  },
-  location: {
-    type: String,
-    maxlength: 200
-  },
-  stopIndex: {
-    type: Number,
-    default: null
-  },
-  status: {
-    type: String,
-    enum: ['reported', 'acknowledged', 'in-progress', 'resolved', 'closed'],
-    default: 'reported'
-  },
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high', 'critical'],
-    default: 'medium'
-  },
-  reportedAt: {
-    type: Date,
-    default: Date.now
-  },
-  acknowledgedAt: {
-    type: Date,
-    default: null
-  },
-  resolvedAt: {
-    type: Date,
-    default: null
-  },
-  resolvedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    default: null
-  },
-  resolution: {
-    type: String,
-    maxlength: 500,
-    default: null
-  },
-  comments: [commentSchema]
-}, {
-  timestamps: true
-});
+  {
+    timestamps: true,
+  }
+);
 
 // Generate unique issue ID before saving
 issueSchema.pre('save', async function(next) {
