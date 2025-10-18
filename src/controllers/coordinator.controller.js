@@ -395,7 +395,9 @@ exports.assignRoute = async (req, res) => {
     }
 
     // Update waste requests to scheduled status
-    const requestStops = route.stops.filter((s) => s.stopType === "request");
+    const requestStops = (route.stops || []).filter(
+      (s) => s.stopType === "request"
+    );
     if (requestStops.length > 0) {
       await WasteRequest.updateMany(
         { _id: { $in: requestStops.map((s) => s.referenceId) } },
@@ -590,17 +592,20 @@ exports.updateStopStatus = async (req, res) => {
  */
 exports.getCrews = async (req, res) => {
   try {
-    const { page, limit, sort } = req.dbOptions;
+    // Ensure req.dbOptions exists and has proper defaults
+    const dbOptions = req.dbOptions || {};
+    const { page = 1, limit = 20, sort = {} } = dbOptions;
     const skip = (page - 1) * limit;
 
     // Build query for crew members
     const query = {
       role: "crew",
-      ...req.dbQuery,
+      ...(req.dbQuery || {}),
     };
 
-    // Default sort by name
-    const sortOrder = Object.keys(sort).length > 0 ? sort : { name: 1 };
+    // Default sort by name - ensure sort is an object
+    const sortObj = typeof sort === "object" && sort !== null ? sort : {};
+    const sortOrder = Object.keys(sortObj).length > 0 ? sortObj : { name: 1 };
 
     const [crews, total] = await Promise.all([
       User.find(query)
@@ -614,23 +619,55 @@ exports.getCrews = async (req, res) => {
     // Get crew profiles and current route assignments
     const crewsWithDetails = await Promise.all(
       crews.map(async (crew) => {
-        const profile = await CrewProfile.findOne({ userId: crew._id });
-        const currentRoute = profile?.currentRouteId
-          ? await Route.findById(profile.currentRouteId).select(
-              "routeName status scheduledDate"
-            )
-          : null;
+        try {
+          const profile = await CrewProfile.findOne({ userId: crew._id });
+          let currentRoute = null;
 
-        return {
-          ...crew.toObject(),
-          profile: profile || null,
-          currentRoute: currentRoute || null,
-          availability: profile?.availability || "available",
-        };
+          if (profile?.currentRouteId) {
+            try {
+              currentRoute = await Route.findById(
+                profile.currentRouteId
+              ).select("routeName status scheduledDate");
+            } catch (routeError) {
+              console.warn(
+                `Failed to fetch route ${profile.currentRouteId}:`,
+                routeError.message
+              );
+              currentRoute = null;
+            }
+          }
+
+          return {
+            ...crew.toObject(),
+            profile: profile || null,
+            currentRoute: currentRoute || null,
+            availability: profile?.availability || "available",
+          };
+        } catch (profileError) {
+          console.warn(
+            `Failed to fetch profile for crew ${crew._id}:`,
+            profileError.message
+          );
+          return {
+            ...crew.toObject(),
+            profile: null,
+            currentRoute: null,
+            availability: "available",
+          };
+        }
       })
     );
 
-    const pagination = buildPaginationResponse(page, limit, total);
+    // Ensure pagination parameters are valid numbers
+    const validPage = Math.max(1, parseInt(page) || 1);
+    const validLimit = Math.max(1, Math.min(100, parseInt(limit) || 20));
+    const validTotal = parseInt(total) || 0;
+
+    const pagination = buildPaginationResponse(
+      validPage,
+      validLimit,
+      validTotal
+    );
 
     return successResponse(
       res,

@@ -80,68 +80,75 @@ routeSchema.virtual('duration').get(function() {
 });
 
 // Virtual for completed stops count
-routeSchema.virtual('completedStopsCount').get(function() {
-  return this.stops.filter(s => s.status === 'completed').length;
+routeSchema.virtual("completedStopsCount").get(function () {
+  return (this.stops || []).filter((s) => s.status === "completed").length;
 });
 
 // Virtual for total stops count
-routeSchema.virtual('totalStopsCount').get(function() {
-  return this.stops.length;
+routeSchema.virtual("totalStopsCount").get(function () {
+  return (this.stops || []).length;
 });
 
 // Calculate completion percentage
-routeSchema.methods.updateCompletion = function() {
-  const totalStops = this.stops.length;
-  const completedStops = this.stops.filter(s => s.status === 'completed').length;
-  this.completionPercentage = totalStops > 0 ? Math.round((completedStops / totalStops) * 100) : 0;
-  
+routeSchema.methods.updateCompletion = function () {
+  const totalStops = (this.stops || []).length;
+  const completedStops = (this.stops || []).filter(
+    (s) => s.status === "completed"
+  ).length;
+  this.completionPercentage =
+    totalStops > 0 ? Math.round((completedStops / totalStops) * 100) : 0;
+
   // Auto-update status if all stops completed
-  if (this.completionPercentage === 100 && this.status === 'in-progress') {
-    this.status = 'completed';
+  if (this.completionPercentage === 100 && this.status === "in-progress") {
+    this.status = "completed";
     this.endTime = new Date();
-    
+
     // Calculate actual duration
     if (this.startTime) {
-      this.actualDuration = Math.round((this.endTime - this.startTime) / (1000 * 60));
+      this.actualDuration = Math.round(
+        (this.endTime - this.startTime) / (1000 * 60)
+      );
     }
   }
-  
+
   return this;
 };
 
 // Method to start route
-routeSchema.methods.startRoute = function() {
-  this.status = 'in-progress';
+routeSchema.methods.startRoute = function () {
+  this.status = "in-progress";
   this.startTime = new Date();
   return this.save();
 };
 
 // Method to complete route
-routeSchema.methods.completeRoute = function() {
-  this.status = 'completed';
+routeSchema.methods.completeRoute = function () {
+  this.status = "completed";
   this.endTime = new Date();
   this.completionPercentage = 100;
-  
+
   if (this.startTime) {
-    this.actualDuration = Math.round((this.endTime - this.startTime) / (1000 * 60));
+    this.actualDuration = Math.round(
+      (this.endTime - this.startTime) / (1000 * 60)
+    );
   }
-  
+
   return this.save();
 };
 
 // Method to assign to crew
-routeSchema.methods.assignToCrew = function(crewId, vehicleId) {
+routeSchema.methods.assignToCrew = function (crewId, vehicleId) {
   this.crewId = crewId;
   if (vehicleId) this.vehicleId = vehicleId;
-  this.status = 'assigned';
+  this.status = "assigned";
   return this.save();
 };
 
 // Method to update stop status
-routeSchema.methods.updateStopStatus = function(stopIndex, status) {
-  if (stopIndex >= 0 && stopIndex < this.stops.length) {
+routeSchema.methods.updateStopStatus = function (stopIndex, status) {
+  if (this.stops && stopIndex >= 0 && stopIndex < this.stops.length) {
     this.stops[stopIndex].status = status;
-    if (status === 'completed') {
+    if (status === "completed") {
       this.stops[stopIndex].completedAt = new Date();
     }
     this.updateCompletion();
